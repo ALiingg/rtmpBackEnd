@@ -45,6 +45,7 @@ public class UserController {
     @PostMapping("/tokenlogin")
     public Result<User> tokenLoginController(@RequestBody String token){
         User user = userServiceImpl.tokenService(token);
+        System.out.println(token);
         if(user!=null){
             return Result.success(user, "token valid");
         } else {

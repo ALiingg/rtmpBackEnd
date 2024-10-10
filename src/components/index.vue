@@ -289,7 +289,20 @@ export default {
 
     }
     const checkLogin = () => {
+      let token = Cookies.get('token');
+      console.log(token);
+          axios({
+            method: 'post',
+            url: baseUrl + '/user/tokenlogin',
+            headers: {"Content-Type": "text/plain"},
+            data: token
 
+          }).then(res => {
+            console.log(res.data);
+            if (res.data.code == 0) {
+              successLogin();
+            }
+          })
     }
     const createVideo = (videoId, streamUrl) => {
       const videoElement = document.getElementById(videoId);
@@ -314,8 +327,9 @@ export default {
     };
 
     onMounted(async () => {
-      await getUrl();
 
+      await getUrl();
+      await checkLogin();
     });
 
     const handleClose = () => {

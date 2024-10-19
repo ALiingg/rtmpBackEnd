@@ -1,10 +1,14 @@
 package com.example.demo.controller;
 
+import com.example.demo.utils.SshUtil;
+import com.example.demo.utils.dataUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -29,5 +33,15 @@ public class StreamController {
         }
         // Convert the list to an array and return
         return urls;
+    }
+//    @GetMapping("/changeurl")
+//    public boolean changeUrl(String url) {
+//
+//    }
+    @GetMapping("/fetchreplays")
+    public ArrayList<ArrayList<String>> getFetchReplayUrls() {
+
+
+        return dataUtil.getReplaysUrl();
     }
 }

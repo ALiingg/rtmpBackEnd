@@ -14,34 +14,38 @@ import java.util.List;
 @RestController
 public class StreamController {
 
+    // Inject JdbcTemplate to interact with the database
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    /**
+     * Retrieves live stream URLs from the database.
+     * This method assumes there are 4 URLs in the database with column names `url1`, `url2`, etc.
+     * @return An array of 4 live stream URLs
+     */
     @GetMapping("/live")
     public String[] getLiveUrls() {
+        String[] urls = new String[4]; // Array to store 4 URLs
 
-        String[] urls = new String[4];
-        // Query the database and map the result to a list of strings
-        for(int i = 1; i <= 4; i ++){
+        // Loop through each URL column (url1, url2, etc.)
+        for (int i = 1; i <= 4; i++) {
+            int finalI = i; // Capture the loop variable for the SQL query
+            String sql = "SELECT url" + finalI + " FROM liveUrl"; // SQL query to select each URL column
 
-            int finalI = i;
-            String sql = "SELECT url" + finalI + " FROM liveUrl";
-
+            // Execute the query and store the result in the array
             urls[i - 1] = jdbcTemplate.queryForObject(sql, String.class);
-            System.out.println(urls[i - 1]);
-
+            System.out.println(urls[i - 1]); // Print each URL to the console for debugging
         }
-        // Convert the list to an array and return
-        return urls;
+
+        return urls; // Return the array of URLs
     }
-//    @GetMapping("/changeurl")
-//    public boolean changeUrl(String url) {
-//
-//    }
+
+    /**
+     * Retrieves replay URLs from an external data utility.
+     * @return A 2D ArrayList of replay URLs, where each inner list represents a different replay's details
+     */
     @GetMapping("/fetchreplays")
     public ArrayList<ArrayList<String>> getFetchReplayUrls() {
-
-
-        return dataUtil.getReplaysUrl();
+        return dataUtil.getReplaysUrl(); // Fetch replay URLs from `dataUtil` utility and return
     }
 }

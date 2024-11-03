@@ -14,58 +14,64 @@ import ch.ethz.ssh2.Connection;
 import ch.ethz.ssh2.Session;
 import ch.ethz.ssh2.StreamGobbler;
 
-
 public class SshUtil {
+
+    // Default character set used for encoding/decoding
     private static String DEFAULT_CHAR_SET = "UTF-8";
-//    private static String tipStr = "=======================%s=======================";
-//    private static String splitStr = "=====================================================";
 
     /**
-     * 登录主机
-     * @return
-     *      登录成功返回true，否则返回false
+     * Logs into a remote host via SSH.
+     * @param ip IP address of the host to connect to
+     * @param userName Username for authentication
+     * @param password Password for authentication
+     * @return Connection object if login is successful; null otherwise
      */
-    public static Connection login(String ip, String userName, String password){
+    public static Connection login(String ip, String userName, String password) {
         boolean isAuthenticated = false;
         Connection conn = null;
-        long startTime = Calendar.getInstance().getTimeInMillis();
-        try {
-            conn = new Connection(ip);
-            conn.connect(); // 连接主机
+        long startTime = Calendar.getInstance().getTimeInMillis(); // Start time for login attempt
 
-            isAuthenticated = conn.authenticateWithPassword(userName, password); // 认证
-            if(isAuthenticated){
-//                System.out.println(String.format(tipStr, "认证成功"));
+        try {
+            conn = new Connection(ip); // Create a connection instance
+            conn.connect(); // Connect to the host
+
+            // Authenticate with provided username and password
+            isAuthenticated = conn.authenticateWithPassword(userName, password);
+            if (isAuthenticated) {
+                // Connection authenticated successfully
             } else {
-//                System.out.println(String.format(tipStr, "认证失败"));
+                // Authentication failed
             }
         } catch (IOException e) {
-//            System.err.println(String.format(tipStr, "登录失败"));
+            // Handle connection error
             e.printStackTrace();
         }
         long endTime = Calendar.getInstance().getTimeInMillis();
-//        System.out.println("登录用时: " + (endTime - startTime)/1000.0 + "s\n" + splitStr);
+        // Log the time taken for the login attempt (optional)
         return conn;
     }
 
     /**
-     * 远程执行shell脚本或者命令
-     * @param cmd
-     *      即将执行的命令
-     * @return
-     *      命令执行完后返回的结果值
+     * Executes a shell command on a remote host via SSH.
+     * @param conn Established SSH connection
+     * @param cmd Command to execute on the remote host
+     * @return The output of the executed command as a String
      */
     public static String execute(Connection conn, String cmd) {
         String result = "";
         Session session = null;
         try {
+            // Check if the connection is authenticated before proceeding
             if (conn != null && conn.isAuthenticationComplete()) {
-                session = conn.openSession();  // Open a session
-                session.execCommand(cmd);      // Execute the command
+                session = conn.openSession();  // Open a session with the host
+                session.execCommand(cmd);      // Execute the provided command
+
+                // Capture standard output of the command
                 result = processStdout(session.getStdout(), DEFAULT_CHAR_SET);
 
+                // If there is no output, check the standard error for any error messages
                 if (StringUtils.isBlank(result)) {
-                    result = processStdout(session.getStderr(), DEFAULT_CHAR_SET); // Check for errors
+                    result = processStdout(session.getStderr(), DEFAULT_CHAR_SET);
                 }
             } else {
                 throw new IllegalStateException("You need to establish a connection first.");
@@ -74,65 +80,77 @@ public class SshUtil {
             e.printStackTrace();
         } finally {
             if (session != null) {
-                session.close();
+                session.close(); // Close the session after execution
             }
         }
         return result;
     }
 
     /**
-     * 解析脚本执行返回的结果集
-     * @param in 输入流对象
-     * @param charset 编码
-     * @return
-     *       以纯文本的格式返回
+     * Processes the output stream from the executed command.
+     * @param in InputStream from the command execution
+     * @param charset Character set used for decoding the output
+     * @return The command output as a plain text String
      */
-    private static String processStdout(InputStream in, String charset){
-        InputStream stdout = new StreamGobbler(in);
+    private static String processStdout(InputStream in, String charset) {
+        InputStream stdout = new StreamGobbler(in); // Wrap InputStream in StreamGobbler to handle output efficiently
         StringBuffer buffer = new StringBuffer();
+
         try {
             BufferedReader br = new BufferedReader(new InputStreamReader(stdout, charset));
-            String line = null;
-            while((line = br.readLine()) != null){
-                buffer.append(line + "\n");
+            String line;
+            while ((line = br.readLine()) != null) {
+                buffer.append(line + "\n"); // Append each line to the buffer
             }
         } catch (UnsupportedEncodingException e) {
-            System.err.println("解析脚本出错：" + e.getMessage());
+            System.err.println("Error processing output: " + e.getMessage());
             e.printStackTrace();
         } catch (IOException e) {
-            System.err.println("解析脚本出错：" + e.getMessage());
+            System.err.println("Error processing output: " + e.getMessage());
             e.printStackTrace();
         }
         return buffer.toString();
     }
 
-    public static ArrayList<ArrayList<String>> startConnect(){
-        String ip = "180.159.15.171";   // 此处根据实际情况，换成自己需要访问的主机IP
+    /**
+     * Establishes an SSH connection, executes commands to retrieve file information,
+     * and parses the results into a 2D list.
+     * @return A 2D ArrayList containing file information with each inner list representing a file's details (filename, size, and timestamp)
+     */
+    public static ArrayList<ArrayList<String>> startConnect() {
+        // SSH connection details for the host
+        String ip = "localhost";
         String userName = "root";
         String password = "Sky061104";
-        Connection conn =  SshUtil.login(ip, userName, password);
 
-        String cmd = "ls /usr/local/nginx/temp/records";
-        String cmd2 = "cd /usr/local/nginx/temp/records && ls -l | awk '{print $5}'";
-        String result = SshUtil.execute(conn, cmd);
-        String result2 = SshUtil.execute(conn, cmd2);
-        System.out.println(result2);
-//        System.out.println();
+        // Establish an SSH connection
+        Connection conn = SshUtil.login(ip, userName, password);
+
+        // Commands to list filenames, sizes, and timestamps in a directory
+        String cmd = "ls -t /usr/local/nginx/temp/records"; // Lists files by time in the specified directory
+        String cmd2 = "cd /usr/local/nginx/temp/records && ls -lt | awk '{print $5}'"; // Gets file sizes
+        String cmd3 = "cd /usr/local/nginx/temp/records && ls -lt | awk '{printf \"%s %s %s\\n\", $6,$7,$8}'"; // Gets file timestamps
+
+        // Execute each command and capture the output
+        String result = SshUtil.execute(conn, cmd);  // List of filenames
+        String result2 = SshUtil.execute(conn, cmd2); // List of file sizes
+        String result3 = SshUtil.execute(conn, cmd3); // List of file timestamps
+
+        // Split command output by newline to create arrays of data
         String[] temp = result.split("\n");
         String[] temp2 = result2.split("\n");
-//        for (int i = 0; i < temp2.length; i ++) {
-//            System.out.println(temp2[i]);
-//        }
+        String[] temp3 = result3.split("\n");
+
+        // 2D list to store details of each file (filename, size, timestamp)
         ArrayList<ArrayList<String>> lines = new ArrayList<>();
 
+        // Loop through each file and compile its details into the list
         for (int i = 0; i < temp.length; i++) {
             ArrayList<String> line = new ArrayList<>();
-
-            line.add(temp[i]);
-            line.add(temp2[i + 1]);
-
-            lines.add(line);
-
+            line.add(temp[i]);        // Add filename
+            line.add(temp2[i + 1]);   // Add file size (skip first line if needed)
+            line.add(temp3[i + 1]);   // Add timestamp (skip first line if needed)
+            lines.add(line);          // Add compiled line to the main list
         }
         return lines;
     }

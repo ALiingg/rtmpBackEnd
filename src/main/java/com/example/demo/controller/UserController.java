@@ -1,13 +1,20 @@
 package com.example.demo.controller;
 
 import com.example.demo.domain.User;
+import com.example.demo.domain.VerificationCode;
+import com.example.demo.repository.VerificationCodeRepository;
+import com.example.demo.service.EmailService;
 import com.example.demo.service.UserService;
 import com.example.demo.service.serviceImpl.UserServiceImpl;
+import com.example.demo.utils.CodeGenerator;
 import com.example.demo.utils.Result;
 import jakarta.annotation.Resource;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import com.example.demo.utils.randomUUID;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/user")
@@ -21,6 +28,60 @@ public class UserController {
     @Autowired
     private UserServiceImpl userServiceImpl;
 
+        @Autowired
+        private EmailService emailService;
+
+        @Autowired
+        private VerificationCodeRepository verificationCodeRepository;
+
+        @PostMapping("/sendVerificationCode")
+        public String sendVerificationCode(@RequestParam String email) {
+            String code = CodeGenerator.generateCode(); // 生成验证码
+
+            // 创建验证码对象
+            VerificationCode verificationCode = new VerificationCode();
+            verificationCode.setEmail(email);
+            verificationCode.setCode(code);
+            verificationCode.setCreatedAt(LocalDateTime.now());
+            verificationCode.setExpiresAt(LocalDateTime.now().plusMinutes(5)); // 设置5分钟过期
+
+            verificationCodeRepository.save(verificationCode); // 保存到数据库
+            emailService.sendEmail(email, code); // 发送邮件
+            return "Verification code sent successfully";
+        }
+
+            @Transactional
+
+        public String verifyCode(String email, String code) {
+            VerificationCode verificationCode = verificationCodeRepository
+                    .findByEmailAndCode(email, code)
+                    .orElse(null);
+
+            if (verificationCode != null && verificationCode.getExpiresAt().isAfter(LocalDateTime.now())) {
+                verificationCodeRepository.deleteByEmail(email); // 验证成功后删除验证码
+                return "Verification successful";
+            } else {
+                return "Invalid or expired code";
+            }
+        }
+
+
+    @PostMapping("/loginByEmail")
+    public Result<User> loginByEmail(@RequestParam String email, @RequestParam String password) {
+        User user = userServiceImpl.loginByEmail(email, password);
+        if (user != null) {
+            String token = randomUUID.getUUID();
+            user.setToken(token);
+
+            // Update the token in thea database
+            userService.updateToken(user);
+            return Result.success(user, "Login successful!");
+        } else {
+            // Return error if authentication fails
+            return Result.error("123", "Incorrect username or password!");
+
+        }
+    }
     /**
      * Handles user login requests.
      * @param uname Username of the user trying to log in
@@ -31,6 +92,7 @@ public class UserController {
     @PostMapping("/login")
     public Result<User> loginController(@RequestParam String uname, @RequestParam String password) {
         // Call the login service to authenticate user
+
         User user = userService.loginService(uname, password);
 
         // Check if user exists
@@ -58,7 +120,17 @@ public class UserController {
      * or error message if the username already exists
      */
     @PostMapping("/register")
-    public Result<User> registController(@RequestBody User newUser) {
+    public Result<User> registController(@RequestParam String uname, @RequestParam String password, @RequestParam String passcode, @RequestParam String email, @RequestParam String code) {
+        String pscode = "Huili2018";
+        if (!passcode.equals(pscode)) {
+            return Result.error("123", "Incorrect passcode!");
+        }
+        User newUser = new User();
+        newUser.setUsername(uname);
+        newUser.setPassword(password);
+        newUser.setEmail(email);
+
+
         // Call the registration service to create a new user
         User user = userService.registService(newUser);
 

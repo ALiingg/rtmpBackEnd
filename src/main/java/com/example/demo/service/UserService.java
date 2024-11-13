@@ -22,6 +22,7 @@ public interface UserService {
     User loginService(String uname, String password);
 
 
+    User loginByEmail(String email, String password);
 
     /**
 

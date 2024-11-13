@@ -17,7 +17,7 @@ public class UserServiceImpl implements UserService {
      * Service method to handle user login.
      * @param uname Username of the user trying to log in
      * @param password Password of the user
-     * @return The User object if authentication is successful, otherwise null with an empty password field
+     * @return The User object( if authentication is successful, otherwise null with an empty password field
      */
     @Override
     public User loginService(String uname, String password) {
@@ -31,7 +31,20 @@ public class UserServiceImpl implements UserService {
 
         return user; // Return the user object (or null if not found)
     }
-
+    /**
+     * Service method to handle user login by email.
+     * @param email Username of the user trying to log in
+     * @param password Password of the user
+     * @return The User object if authentication is successful, otherwise null with an empty password field
+     */
+    @Override
+    public User loginByEmail(String email, String password){
+        User user = userDao.findByEmailAndPassword(email, password);
+        if (user == null) {
+            user.setPassword("");
+        }
+        return user;
+    }
     /**
      * Service method to handle user registration.
      * Checks if a username already exists; if not, registers a new user.

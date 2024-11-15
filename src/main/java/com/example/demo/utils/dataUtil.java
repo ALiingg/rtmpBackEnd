@@ -1,7 +1,14 @@
 package com.example.demo.utils;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
+
 
 public class dataUtil {
 
@@ -56,4 +63,16 @@ public class dataUtil {
 
         return replays; // Return the list of formatted replay details
     }
+    public static ArrayList<String> getFileName() {
+        ArrayList<ArrayList<String>> raw = SshUtil.startConnect();
+        ArrayList<String> files = new ArrayList<>();
+        for (int i = 0; i < raw.size(); i++) {
+            String line = raw.get(i).get(0);
+            files.add(line);
+
+        }
+        return files;
+
+    }
+
 }

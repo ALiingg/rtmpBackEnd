@@ -48,4 +48,22 @@ public class StreamController {
     public ArrayList<ArrayList<String>> getFetchReplayUrls() {
         return dataUtil.getReplaysUrl(); // Fetch replay URLs from `dataUtil` utility and return
     }
+    @GetMapping("/savereplays")
+    public boolean getSavereplayUrls() {
+        ArrayList<String> fileNames = dataUtil.getFileName(); // 获取文件名列表
+        StringBuilder sqlBuilder = new StringBuilder("INSERT INTO replays (original) VALUES ");
+
+        for (int i = 0; i < fileNames.size(); i++) {
+            sqlBuilder.append("('").append(fileNames.get(i)).append("')");
+            if (i < fileNames.size() - 1) {
+                sqlBuilder.append(", ");
+            }
+        }
+
+        String sql = sqlBuilder.toString();
+        System.out.println(sql); // 输出 SQL 语句，用于调试
+        jdbcTemplate.execute(sql);
+        return false;
+    }
+
 }

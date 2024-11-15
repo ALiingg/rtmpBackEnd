@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import com.example.demo.utils.randomUUID;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/user")
@@ -35,7 +36,7 @@ public class UserController {
         private VerificationCodeRepository verificationCodeRepository;
 
         @PostMapping("/sendVerificationCode")
-        public String sendVerificationCode(@RequestParam String email) {
+        public Result<String> sendVerificationCode(@RequestParam String email) {
             String code = CodeGenerator.generateCode(); // 生成验证码
 
             // 创建验证码对象
@@ -47,21 +48,21 @@ public class UserController {
 
             verificationCodeRepository.save(verificationCode); // 保存到数据库
             emailService.sendEmail(email, code); // 发送邮件
-            return "Verification code sent successfully";
+            return Result.success("456", "Verification Code Sent");
         }
 
             @Transactional
 
-        public String verifyCode(String email, String code) {
+        public boolean verifyCode(String email, String code) {
             VerificationCode verificationCode = verificationCodeRepository
                     .findByEmailAndCode(email, code)
                     .orElse(null);
 
             if (verificationCode != null && verificationCode.getExpiresAt().isAfter(LocalDateTime.now())) {
                 verificationCodeRepository.deleteByEmail(email); // 验证成功后删除验证码
-                return "Verification successful";
+                return true;
             } else {
-                return "Invalid or expired code";
+                return false;
             }
         }
 
@@ -119,9 +120,16 @@ public class UserController {
      * @return Result object with success message if registration is successful,
      * or error message if the username already exists
      */
+    @Transactional
     @PostMapping("/register")
     public Result<User> registController(@RequestParam String uname, @RequestParam String password, @RequestParam String passcode, @RequestParam String email, @RequestParam String code) {
-        String pscode = "Huili2018";
+        if (!verifyCode(email, code)) {
+            System.out.println(code);
+            System.out.println(email);
+            return Result.error("123", "Incorrect verification code!");
+        }
+        String pscode = "123456";
+        System.out.println(passcode + passcode.equals(pscode));
         if (!passcode.equals(pscode)) {
             return Result.error("123", "Incorrect passcode!");
         }
@@ -140,7 +148,7 @@ public class UserController {
             return Result.success(user, "Registration successful!");
         } else {
             // Return error if username already exists
-            return Result.error("456", "Username already exists!");
+            return Result.error("999", "Username already exists!");
         }
     }
 

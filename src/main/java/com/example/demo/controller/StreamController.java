@@ -62,8 +62,13 @@ public class StreamController {
 
         String sql = sqlBuilder.toString();
         System.out.println(sql); // 输出 SQL 语句，用于调试
-        jdbcTemplate.execute(sql);
-        return false;
+        try {
+            jdbcTemplate.execute(sql);
+        }catch (Exception e){
+            return false;
+        }
+
+        return true;
     }
 
 }
